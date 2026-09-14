@@ -1,41 +1,25 @@
-# WIP: Desktop Fly
+Go OpenGL plot scaffold
 
-Using the [Male CNS dataset](https://www.janelia.org/project-team/flyem/male-cns-connectome) to create a fly that lives on a desktop.
+This folder contains a minimal Go program that opens an OpenGL window using
+`glfw` + `go-gl`. It is a scaffold for the web-plot → OpenGL refactor.
 
-## Overview
+Build (macOS) notes:
 
-The Desktop Fly project leverages the Male CNS dataset to simulate a fly's neural network on a desktop environment. The fly's brain is modeled using a simple spiking-like network, where neurons receive sensory inputs and generate motor outputs to control the fly's behavior. The project aims to explore neural connectivity and behavior in a controlled, virtual setting.
+- Install GLFW system dependency (Homebrew):
 
-## Usage
+  brew install glfw
 
-To run the Desktop Fly simulation, follow these steps:
+- Build using `go build` inside this folder (requires CGO environment):
 
-1. Clone the repository:
+  cd go
+  go mod tidy
+  go build -o desktop-fly
 
-```bash
-git clone https://github.com/yourusername/desktop-fly.git
-cd desktop-fly
-```
+- Run:
 
-2. (Optional) Configure a virtual environment:
+  ./desktop-fly
 
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows use `venv\Scripts\activate`
-```
-
-3. Install the required dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-4. Run the simulation:
-
-```bash
-python main.py
-```
-
-## TODO
-
-- Create single executable for Windows/macOS/Linux
+Next steps:
+- Implement loading neuron/skeleton data (CSV) and draw nodes/edges.
+- Implement camera pan so the fly is always centered.
+- Replace immediate-mode placeholder with actual GL rendering of graph.

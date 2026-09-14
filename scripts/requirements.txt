@@ -1,6 +1,5 @@
 neuprint-python
-numpy
-Pillow
 python-dotenv
-pyglet
-plotly
+pandas
+numpy
+tqdm
