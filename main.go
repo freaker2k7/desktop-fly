@@ -101,11 +101,13 @@ func main() {
 		if err := plotWin.UploadSegments(segments); err != nil {
 			log.Println("warning: failed to upload segments:", err)
 		}
+		// Ensure node positions are uploaded (no-op change to keep consistent)
 		if len(nodePositions) > 0 {
-			if err := plotWin.UploadNodes(nodePositions, nodeIDs); err != nil {
-				log.Println("warning: failed to upload nodes:", err)
+			if err := plotWin.UploadNodePositions(nodePositions, nodeIDs); err != nil {
+				log.Println("warning: failed to upload node positions:", err)
 			}
 		}
+		// nodes rendering removed; only skeleton segments are uploaded
 		// compute a reasonable scale and offset to center content
 		ww, wh := plotWin.Window.GetSize()
 		// scale such that bbox fits into window
@@ -160,9 +162,9 @@ func main() {
 			fw.Window.SetPos(fx, fy)
 		}
 
-		// update node colors from merged body activity and render plot (center camera on fly position)
+		// render plot (center camera on fly position)
+		// update active edges from brain state then render
 		merged := body.Merged()
-		plotWin.UpdateActiveNodes(merged)
 		plotWin.UpdateActiveEdges(merged)
 		plotWin.Render(float32(fw.Fly.X), float32(fw.Fly.Y))
 

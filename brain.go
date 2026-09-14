@@ -9,6 +9,7 @@ type Edge struct {
 	Dst    int64
 	Weight float64
 	ROI    string
+	Active bool
 }
 
 type Brain struct {
@@ -66,11 +67,11 @@ func (b *Brain) Step(sensory map[string]float64) (float64, float64) {
 		}
 	}
 
-	for _, e := range b.Edges {
+	for i := range b.Edges {
+		e := &b.Edges[i]
 		if _, ok := spikes[e.Src]; ok {
 			if target, ok := b.Neurons[e.Dst]; ok {
 				var mult float64
-				// approximate ROI-based modifiers using presence
 				if e.ROI != "" && (b.Neurons[e.Src].ROI == e.ROI || target.ROI == e.ROI) {
 					mult = ROI_SAME_BOOST
 				} else if b.Neurons[e.Src].ROI == "" && target.ROI == "" {
@@ -79,18 +80,25 @@ func (b *Brain) Step(sensory map[string]float64) (float64, float64) {
 					mult = ROI_DIFF_PENALTY
 				}
 				target.Potential += e.Weight * mult
+				// fmt.Println("Activating edge from", e.Src, "to", e.Dst, "with weight", e.Weight)
+				e.Active = true
+			} else {
+				e.Active = false
 			}
+		} else {
+			e.Active = false
 		}
 	}
 
 	turn := 0.0
 	thrust := 0.0
 	for i, neuron := range neurons {
-		if i%3 == 0 {
+		switch i % 3 {
+		case 0:
 			turn -= neuron.Activity
-		} else if i%3 == 1 {
+		case 1:
 			turn += neuron.Activity
-		} else {
+		case 2:
 			thrust += neuron.Activity
 		}
 	}
