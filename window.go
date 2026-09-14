@@ -12,7 +12,7 @@ import (
 
 type FlyWindow struct {
 	Window     *glfw.Window
-	Brain      *Brain
+	Body       *Body
 	Fly        *Fly
 	MouseX     float64
 	MouseY     float64
@@ -22,13 +22,13 @@ type FlyWindow struct {
 	VAO        uint32
 }
 
-func NewFlyWindow(brain *Brain) (*FlyWindow, error) {
+func NewFlyWindow(body *Body, share *glfw.Window) (*FlyWindow, error) {
 	// assume glfw.Init() and gl.Init() were already called by caller
 	// use a small window which will be moved to follow the fly
 	// make the small fly window half linear size (1/4 area)
 	width := 80
 	height := 80
-	window, err := glfw.CreateWindow(width, height, "Fly", nil, nil)
+	window, err := glfw.CreateWindow(width, height, "Fly", nil, share)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +43,7 @@ func NewFlyWindow(brain *Brain) (*FlyWindow, error) {
 	virtualH := 1200.0
 	fw := &FlyWindow{
 		Window:  window,
-		Brain:   brain,
+		Body:    body,
 		Fly:     NewFly(virtualW, virtualH),
 		MouseX:  virtualW / 2,
 		MouseY:  virtualH / 2,
@@ -201,7 +201,7 @@ func (fw *FlyWindow) brainLoop() {
 		// wait for next tick
 		<-ticker.C
 		sensors := fw.Fly.Sensors(fw.MouseX, fw.MouseY)
-		turn, thrust := fw.Brain.Step(sensors)
+		turn, thrust := fw.Body.Step(sensors)
 		fw.Fly.Turn = turn
 		fw.Fly.Thrust = thrust
 		fw.Fly.Update(1.0/60.0, 7.0)

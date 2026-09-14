@@ -20,6 +20,7 @@ func LoadSkeletonSegments(root string, dataDir string) ([]float32, []float32, []
 	if err != nil {
 		return nil, nil, nil, 0, 0, 0, 0, err
 	}
+	fmt.Printf("LoadSkeletonSegments: pattern=%s files=%d\n", pattern, len(files))
 	var segments []float32
 	var minX, minY, maxX, maxY float32
 	first := true
@@ -138,5 +139,6 @@ func LoadSkeletonSegments(root string, dataDir string) ([]float32, []float32, []
 		}
 	}
 
+	fmt.Printf("LoadSkeletonSegments: nodes=%d segments=%d bbox=(%f,%f)-(%f,%f)\n", len(nodeIDs), len(segments)/4, minX, minY, maxX, maxY)
 	return segments, nodePositions, nodeIDs, minX, minY, maxX, maxY, nil
 }

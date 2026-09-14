@@ -9,25 +9,30 @@ import (
 )
 
 type PlotWindow struct {
-	Window      *glfw.Window
-	VBO         uint32
-	VAO         uint32
-	Count       int32
-	Program     uint32
-	NodeVBO     uint32
-	ColorVBO    uint32
-	SizeVBO     uint32
-	NodeCount   int32
-	NodeIDs     []int64
-	NodeProgram uint32
-	Scale       float32
-	OffsetX     float32
-	OffsetY     float32
+	Window    *glfw.Window
+	VBO       uint32
+	VAO       uint32
+	Count     int32
+	Program   uint32
+	NodeVBO   uint32
+	NodeCount int32
+	NodeIDs   []int64
+	// active nodes VBO (positions of currently active neurons)
+	ActiveNodeVBO   uint32
+	ActiveNodeCount int32
+	Scale           float32
+	OffsetX         float32
+	OffsetY         float32
 	// store node positions locally to build active-edge lines
 	NodePositions   []float32
 	ActiveEdgeVBO   uint32
 	ActiveEdgeCount int32
 	FrameCounter    int
+	// cached attribute/uniform locations
+	PosLoc   int32
+	ColorLoc int32
+	// map from node id to position index for fast lookup
+	IdToIdx map[int64]int
 }
 
 func NewPlotWindow(width, height int, title string) (*PlotWindow, error) {
@@ -46,12 +51,10 @@ func (pw *PlotWindow) InitProgram() error {
 		return err
 	}
 	pw.Program = prog
-	// compile node program too
-	np, err := newNodeProgram()
-	if err != nil {
-		return err
-	}
-	pw.NodeProgram = np
+	// cache attribute/uniform locations
+	pw.PosLoc = gl.GetAttribLocation(pw.Program, gl.Str("pos\x00"))
+	pw.ColorLoc = gl.GetUniformLocation(pw.Program, gl.Str("color\x00"))
+	// no separate node program; nodes rendered with simple program
 	// create and bind a VAO for core-profile compatibility
 	var vao uint32
 	gl.GenVertexArrays(1, &vao)
@@ -90,28 +93,18 @@ func (pw *PlotWindow) UploadNodes(nodePositions []float32, nodeIDs []int64) erro
 	// keep a local copy of node positions for edge drawing
 	pw.NodePositions = make([]float32, len(nodePositions))
 	copy(pw.NodePositions, nodePositions)
-
-	// create color buffer initialized to zeros
-	colors := make([]float32, pw.NodeCount*3)
-	var cbo uint32
-	gl.GenBuffers(1, &cbo)
-	gl.BindBuffer(gl.ARRAY_BUFFER, cbo)
-	gl.BufferData(gl.ARRAY_BUFFER, len(colors)*4, gl.Ptr(&colors[0]), gl.DYNAMIC_DRAW)
-	pw.ColorVBO = cbo
-	// create size buffer (point sizes) initialized to default
-	sizes := make([]float32, pw.NodeCount)
-	for i := range sizes {
-		sizes[i] = 6.0
-	}
-	var sbo uint32
-	gl.GenBuffers(1, &sbo)
-	gl.BindBuffer(gl.ARRAY_BUFFER, sbo)
-	gl.BufferData(gl.ARRAY_BUFFER, len(sizes)*4, gl.Ptr(&sizes[0]), gl.DYNAMIC_DRAW)
-	pw.SizeVBO = sbo
-	// ensure active edge VBO is initialized (empty)
+	// ensure active nodes and active edge VBOs are initialized (empty)
+	var anb uint32
+	gl.GenBuffers(1, &anb)
+	pw.ActiveNodeVBO = anb
 	var aeb uint32
 	gl.GenBuffers(1, &aeb)
 	pw.ActiveEdgeVBO = aeb
+	// build id->index map for fast edge/node lookups
+	pw.IdToIdx = make(map[int64]int, len(nodeIDs))
+	for i, id := range nodeIDs {
+		pw.IdToIdx[id] = i
+	}
 	return nil
 }
 
@@ -120,11 +113,8 @@ func (pw *PlotWindow) UpdateActiveEdges(br *Brain) {
 	if pw.NodeCount == 0 || pw.ActiveEdgeVBO == 0 {
 		return
 	}
-	// map node id to position index
-	idToIdx := make(map[int64]int)
-	for i, id := range pw.NodeIDs {
-		idToIdx[id] = i
-	}
+	// use prebuilt id->index map
+	idToIdx := pw.IdToIdx
 	verts := make([]float32, 0)
 	// threshold for considering a neuron active
 	const actThreshold = 0.5
@@ -156,36 +146,30 @@ func (pw *PlotWindow) UpdateActiveEdges(br *Brain) {
 	pw.ActiveEdgeCount = int32(len(verts) / 2)
 }
 
-func (pw *PlotWindow) UpdateNodeColors(br *Brain) {
-	if pw.NodeVBO == 0 || pw.ColorVBO == 0 || pw.NodeCount == 0 {
+// UpdateActiveNodes uploads positions of currently active neurons for overlay rendering
+func (pw *PlotWindow) UpdateActiveNodes(br *Brain) {
+	if pw.NodeCount == 0 || pw.ActiveNodeVBO == 0 {
 		return
 	}
-	colors := make([]float32, pw.NodeCount*3)
-	sizes := make([]float32, pw.NodeCount)
-	for i, id := range pw.NodeIDs {
-		act := 0.0
-		if n, ok := br.Neurons[id]; ok {
-			act = n.Activity
-		}
-		// inactive nodes: white; active nodes (spikes) red
-		if act >= 0.5 {
-			colors[i*3+0] = 1.0
-			colors[i*3+1] = 0.0
-			colors[i*3+2] = 0.0
-			sizes[i] = 12.0
-		} else {
-			colors[i*3+0] = 1.0
-			colors[i*3+1] = 1.0
-			colors[i*3+2] = 1.0
-			sizes[i] = 6.0
+	idToIdx := pw.IdToIdx
+	verts := make([]float32, 0)
+	const actThreshold = 0.5
+	for id, n := range br.Neurons {
+		if n.Activity >= actThreshold {
+			if idx, ok := idToIdx[id]; ok {
+				x := pw.NodePositions[idx*2]
+				y := pw.NodePositions[idx*2+1]
+				verts = append(verts, x, y)
+			}
 		}
 	}
-	gl.BindBuffer(gl.ARRAY_BUFFER, pw.ColorVBO)
-	gl.BufferSubData(gl.ARRAY_BUFFER, 0, len(colors)*4, gl.Ptr(&colors[0]))
-	if pw.SizeVBO != 0 {
-		gl.BindBuffer(gl.ARRAY_BUFFER, pw.SizeVBO)
-		gl.BufferSubData(gl.ARRAY_BUFFER, 0, len(sizes)*4, gl.Ptr(&sizes[0]))
+	if len(verts) == 0 {
+		pw.ActiveNodeCount = 0
+		return
 	}
+	gl.BindBuffer(gl.ARRAY_BUFFER, pw.ActiveNodeVBO)
+	gl.BufferData(gl.ARRAY_BUFFER, len(verts)*4, gl.Ptr(&verts[0]), gl.DYNAMIC_DRAW)
+	pw.ActiveNodeCount = int32(len(verts) / 2)
 }
 
 func (pw *PlotWindow) Render(centerX, centerY float32) {
@@ -210,82 +194,101 @@ func (pw *PlotWindow) Render(centerX, centerY float32) {
 	// ensure VAO is bound for attribute setups
 	gl.BindVertexArray(pw.VAO)
 
-	if pw.VBO == 0 || pw.Count == 0 {
-		return
+	// draw skeleton if available; otherwise continue to nodes/edges
+	if pw.VBO != 0 && pw.Count != 0 {
+		gl.BindBuffer(gl.ARRAY_BUFFER, pw.VBO)
+		var pos uint32
+		var posEnabled bool
+		posLoc := gl.GetAttribLocation(pw.Program, gl.Str("pos\x00"))
+		if posLoc >= 0 {
+			pos = uint32(posLoc)
+			posEnabled = true
+			gl.EnableVertexAttribArray(pos)
+			gl.VertexAttribPointer(pos, 2, gl.FLOAT, false, 0, gl.Ptr(nil))
+		}
+
+		// set skeleton color (warm yellow)
+		colLoc := gl.GetUniformLocation(pw.Program, gl.Str("color\x00"))
+		gl.Uniform4f(colLoc, 1.0, 0.9, 0.6, 1.0)
+
+		gl.LineWidth(1.0)
+		gl.DrawArrays(gl.LINES, 0, pw.Count)
+
+		if posEnabled {
+			gl.DisableVertexAttribArray(pos)
+		}
 	}
-
-	gl.BindBuffer(gl.ARRAY_BUFFER, pw.VBO)
-	pos := uint32(gl.GetAttribLocation(pw.Program, gl.Str("pos\x00")))
-	gl.EnableVertexAttribArray(pos)
-	gl.VertexAttribPointer(pos, 2, gl.FLOAT, false, 0, gl.Ptr(nil))
-
-	// set skeleton color (warm yellow)
-	colLoc := gl.GetUniformLocation(pw.Program, gl.Str("color\x00"))
-	gl.Uniform4f(colLoc, 1.0, 0.9, 0.6, 1.0)
-
-	gl.LineWidth(1.0)
-	gl.DrawArrays(gl.LINES, 0, pw.Count)
-
-	gl.DisableVertexAttribArray(pos)
-	// draw nodes
-	if pw.NodeVBO != 0 && pw.NodeCount > 0 && pw.NodeProgram != 0 {
-		// enable alpha blending for node highlight glow
+	// draw all nodes as simple white points using the simple program
+	if pw.NodeVBO != 0 && pw.NodeCount > 0 {
 		gl.Enable(gl.BLEND)
 		gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
-		gl.UseProgram(pw.NodeProgram)
-		loc2 := gl.GetUniformLocation(pw.NodeProgram, gl.Str("mvp\x00"))
-		gl.UniformMatrix4fv(loc2, 1, false, &mvp[0])
-
+		gl.UseProgram(pw.Program)
+		// reuse mvp already set
 		gl.BindBuffer(gl.ARRAY_BUFFER, pw.NodeVBO)
-		posAttr := uint32(gl.GetAttribLocation(pw.NodeProgram, gl.Str("pos\x00")))
-		gl.EnableVertexAttribArray(posAttr)
-		gl.VertexAttribPointer(posAttr, 2, gl.FLOAT, false, 0, gl.Ptr(nil))
-
-		gl.BindBuffer(gl.ARRAY_BUFFER, pw.ColorVBO)
-		colAttr := uint32(gl.GetAttribLocation(pw.NodeProgram, gl.Str("color\x00")))
-		gl.EnableVertexAttribArray(colAttr)
-		gl.VertexAttribPointer(colAttr, 3, gl.FLOAT, false, 0, gl.Ptr(nil))
-
-		// size attribute
-		if pw.SizeVBO != 0 {
-			gl.BindBuffer(gl.ARRAY_BUFFER, pw.SizeVBO)
-			sizeAttr := uint32(gl.GetAttribLocation(pw.NodeProgram, gl.Str("sizeAttr\x00")))
-			if int(sizeAttr) >= 0 {
-				gl.EnableVertexAttribArray(sizeAttr)
-				gl.VertexAttribPointer(sizeAttr, 1, gl.FLOAT, false, 0, gl.Ptr(nil))
-			}
+		var posAttr uint32
+		var posAttrEnabled bool
+		posLoc := gl.GetAttribLocation(pw.Program, gl.Str("pos\x00"))
+		if posLoc >= 0 {
+			posAttr = uint32(posLoc)
+			posAttrEnabled = true
+			gl.EnableVertexAttribArray(posAttr)
+			gl.VertexAttribPointer(posAttr, 2, gl.FLOAT, false, 0, gl.Ptr(nil))
 		}
 
+		// set node color to white
+		colLoc := gl.GetUniformLocation(pw.Program, gl.Str("color\x00"))
+		gl.Uniform4f(colLoc, 1.0, 1.0, 1.0, 1.0)
 		gl.PointSize(6.0)
 		gl.DrawArrays(gl.POINTS, 0, pw.NodeCount)
-
-		// restore blend state (keep it enabled for other draws if needed)
-		// caller may change later; leave enabled.
-
-		gl.DisableVertexAttribArray(posAttr)
-		gl.DisableVertexAttribArray(colAttr)
-		if pw.SizeVBO != 0 {
-			sizeAttr := uint32(gl.GetAttribLocation(pw.NodeProgram, gl.Str("sizeAttr\x00")))
-			if int(sizeAttr) >= 0 {
-				gl.DisableVertexAttribArray(sizeAttr)
-			}
+		if posAttrEnabled {
+			gl.DisableVertexAttribArray(posAttr)
 		}
 	}
 
-	// draw active synapse lines (red)
+	// draw active nodes as larger red points
+	if pw.ActiveNodeVBO != 0 && pw.ActiveNodeCount > 0 {
+		gl.UseProgram(pw.Program)
+		gl.BindBuffer(gl.ARRAY_BUFFER, pw.ActiveNodeVBO)
+		var aPos uint32
+		var aPosEnabled bool
+		posLoc := gl.GetAttribLocation(pw.Program, gl.Str("pos\x00"))
+		if posLoc >= 0 {
+			aPos = uint32(posLoc)
+			aPosEnabled = true
+			gl.EnableVertexAttribArray(aPos)
+			gl.VertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, gl.Ptr(nil))
+		}
+		colLoc := gl.GetUniformLocation(pw.Program, gl.Str("color\x00"))
+		gl.Uniform4f(colLoc, 1.0, 0.15, 0.15, 1.0)
+		gl.PointSize(12.0)
+		gl.DrawArrays(gl.POINTS, 0, pw.ActiveNodeCount)
+		if aPosEnabled {
+			gl.DisableVertexAttribArray(aPos)
+		}
+	}
+
+	// draw active synapse lines (red, bolder)
 	if pw.ActiveEdgeVBO != 0 && pw.ActiveEdgeCount > 0 {
 		gl.UseProgram(pw.Program)
 		// set color uniform to red
 		colLoc := gl.GetUniformLocation(pw.Program, gl.Str("color\x00"))
 		gl.Uniform4f(colLoc, 1.0, 0.15, 0.15, 1.0)
 		gl.BindBuffer(gl.ARRAY_BUFFER, pw.ActiveEdgeVBO)
-		pos2 := uint32(gl.GetAttribLocation(pw.Program, gl.Str("pos\x00")))
-		gl.EnableVertexAttribArray(pos2)
-		gl.VertexAttribPointer(pos2, 2, gl.FLOAT, false, 0, gl.Ptr(nil))
-		gl.LineWidth(2.0)
+		var pos2 uint32
+		var pos2Enabled bool
+		pos2Loc := gl.GetAttribLocation(pw.Program, gl.Str("pos\x00"))
+		if pos2Loc >= 0 {
+			pos2 = uint32(pos2Loc)
+			pos2Enabled = true
+			gl.EnableVertexAttribArray(pos2)
+			gl.VertexAttribPointer(pos2, 2, gl.FLOAT, false, 0, gl.Ptr(nil))
+		}
+		gl.LineWidth(4.0)
 		gl.DrawArrays(gl.LINES, 0, pw.ActiveEdgeCount)
-		gl.DisableVertexAttribArray(pos2)
+		if pos2Enabled {
+			gl.DisableVertexAttribArray(pos2)
+		}
 	}
 
 	pw.Window.SwapBuffers()
