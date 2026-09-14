@@ -19,7 +19,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 # from neuprint import NeuronCriteria as NC
-from neuprint import fetch_adjacencies, fetch_neurons, fetch_synapses
+from neuprint import Client, fetch_adjacencies, fetch_neurons, fetch_synapses
 from neuprint.utils import merge_neuron_properties
 
 load_dotenv()
@@ -27,26 +27,18 @@ load_dotenv()
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-try:
-    import settings
-except Exception:
-    settings = None
-
 
 def get_setting(name, default=None):
     # precedence: env -> settings module -> default
     v = os.environ.get(name)
     if v:
         return v
-    if settings and hasattr(settings, name):
-        return getattr(settings, name)
+
     return default
 
 
 def make_client(host, dataset, token):
     # Defer import so script can still be inspected without neuprint installed
-    from neuprint import Client
-
     # neuprint Client expects a host without scheme
     host = host.replace("https://", "").replace("http://", "")
     return Client(host, dataset, token)
