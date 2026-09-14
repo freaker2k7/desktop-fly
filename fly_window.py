@@ -3,14 +3,33 @@ import threading
 import time
 
 import pyglet
+from brain import Brain
 from fly import Fly
 from pyglet import shapes
 from settings import BRAIN_HZ
 
 
 class FlyWindow(pyglet.window.Window):
+    screen_width: float
+    screen_height: float
 
-    def __init__(self, brain):
+    brain: Brain
+    fly: Fly
+
+    mouse_x: float
+    mouse_y: float
+
+    running: bool
+
+    body: shapes.Ellipse
+    head: shapes.Circle
+    wing1: shapes.Ellipse
+    wing2: shapes.Ellipse
+    eye1: shapes.Circle
+    eye2: shapes.Circle
+    batch: pyglet.graphics.Batch
+
+    def __init__(self, brain: Brain):
         display = pyglet.display.get_display()
         screen = display.get_default_screen()
 

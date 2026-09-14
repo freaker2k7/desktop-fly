@@ -20,7 +20,7 @@ class Brain:
         if body_id not in self.neurons:
             self.neurons[body_id] = Neuron(body_id, name)
 
-    def step(self, sensory):
+    def step(self, sensory: dict[str, float]):
         """Advance the brain by one timestep using the provided sensory dict.
 
         The function returns a (turn, thrust) tuple where `turn` is in

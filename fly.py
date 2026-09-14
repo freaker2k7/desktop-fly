@@ -5,7 +5,20 @@ from settings import MAX_SPEED
 
 
 class Fly:
-    def __init__(self, width, height):
+    """A class representing a fly in the simulation."""
+
+    width: float
+    height: float
+    x: float
+    y: float
+    vx: float
+    vy: float
+    angle: float
+    turn: float
+    thrust: float
+    wander: float
+
+    def __init__(self, width: float, height: float):
         self.width = width
         self.height = height
 
