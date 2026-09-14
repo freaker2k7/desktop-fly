@@ -1,0 +1,5 @@
+neuprint-python
+numpy
+Pillow
+python-dotenv
+pyglet
