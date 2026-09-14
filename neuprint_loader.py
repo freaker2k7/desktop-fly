@@ -22,7 +22,7 @@ def load_brain():
         try:
             print(f"Loading brain from cache: {cache_file}")
             with cache_file.open("rb") as fh:
-                edges, neurons = pickle.load(fh)
+                neurons, edges = pickle.load(fh)
         except Exception as e:
             print(f"Failed to load cache {cache_file}: {e}")
 
@@ -39,12 +39,12 @@ def load_brain():
 
         criteria = NeuronCriteria(type=ROOT_NEURON)
 
-        edges, neurons = fetch_adjacencies(criteria, None, client=client)
+        neurons, edges = fetch_adjacencies(criteria, None, client=client)
 
         # attempt to cache raw results for faster subsequent runs
         try:
             with cache_file.open("wb") as fh:
-                pickle.dump((edges, neurons), fh)
+                pickle.dump((neurons, edges), fh)
             print(f"Cached neuPrint results to {cache_file}")
         except Exception as e:
             print(f"Failed to write cache {cache_file}: {e}")
@@ -54,28 +54,6 @@ def load_brain():
     # and ensure `neurons_df` contains neuron rows and `edges_df` contains edges.
     neurons_df = neurons
     edges_df = edges
-
-    # # Helper to print dataframes or table-like objects safely.
-    # def _print_table(name, table):
-    #     if table is None:
-    #         print(f"{name}: <None>")
-    #         return
-    #     try:
-    #         # If object provides `to_string` (pandas DataFrame / Series), use
-    #         # it to render the full table. This avoids truncated reprs.
-    #         if hasattr(table, "to_string"):
-    #             shape = getattr(table, "shape", None)
-    #             print(f"{name} (shape={shape}):")
-    #             print(table.to_string())
-    #         else:
-    #             # Fallback: print length and repr
-    #             length = len(table) if hasattr(table, "__len__") else "?"
-    #             print(f"{name} (len={length}): {table}")
-    #     except Exception as e:
-    #         print(f"Failed to print {name}: {e}")
-
-    # _print_table("neurons_df", neurons_df)
-    # _print_table("edges_df", edges_df)
 
     if hasattr(neurons_df, "columns") and hasattr(edges_df, "columns"):
         ncols = set(neurons_df.columns)
