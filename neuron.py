@@ -3,6 +3,7 @@ class Neuron:
     name: str
     potential: float
     activity: float
+    roi: str
 
     def __init__(self, body_id, name):
         self.body_id = body_id
