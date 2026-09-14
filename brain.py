@@ -1,4 +1,5 @@
 from neuron import Neuron
+from settings import ROI_DIFF_PENALTY, ROI_SAME_BOOST, ROI_UNKNOWN
 
 
 class Brain:
@@ -88,12 +89,45 @@ class Brain:
         # Propagate spikes along edges: if a source neuron spiked this step
         # add `weight` to the target neuron's potential. Edges are applied
         # synchronously (all spikes from this timestep are delivered once).
-        for src, dst, weight in self.edges:
+        for edge in self.edges:
+            # Support both (src,dst,weight) and (src,dst,weight,roi)
+            if len(edge) == 3:
+                src, dst, weight = edge
+                edge_roi = None
+            else:
+                src, dst, weight, edge_roi = edge
+
             if src in spikes:
                 target = self.neurons.get(dst)
                 if target:
-                    # Add weighted input to the target's potential.
-                    target.potential += weight
+                    # Compute a small multiplier based on ROI locality. If
+                    # the connection sits within the same ROI we keep the
+                    # full weight; cross-ROI connections are slightly
+                    # penalized to enforce locality.
+                    try:
+                        src_roi = getattr(self.neurons.get(src), "roi", None)
+                        dst_roi = getattr(target, "roi", None)
+                    except Exception:
+                        src_roi = None
+                        dst_roi = None
+
+                    if edge_roi:
+                        # If the edge itself reports an ROI, prefer that
+                        # information when deciding locality.
+                        same_roi = (src_roi is not None and src_roi == edge_roi) or (
+                            dst_roi is not None and dst_roi == edge_roi
+                        )
+                    else:
+                        same_roi = src_roi is not None and src_roi == dst_roi
+
+                    if same_roi:
+                        mult = ROI_SAME_BOOST
+                    elif edge_roi is None and src_roi is None and dst_roi is None:
+                        mult = ROI_UNKNOWN
+                    else:
+                        mult = ROI_DIFF_PENALTY
+
+                    target.potential += weight * mult
 
         # Convert neuron activities into motor commands.
         # `turn` and `thrust` are accumulated by scanning neuron activities.

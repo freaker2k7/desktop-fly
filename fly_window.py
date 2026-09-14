@@ -6,7 +6,7 @@ import pyglet
 from brain import Brain
 from fly import Fly
 from pyglet import shapes
-from settings import BRAIN_HZ
+from settings import BRAIN_HZ, MAX_SPEED
 
 
 class FlyWindow(pyglet.window.Window):
@@ -188,13 +188,39 @@ class FlyWindow(pyglet.window.Window):
         self.head.y = y + dy * 11
 
         # Wings.
-        self.wing1.x = x + px * 10
-        self.wing1.y = y + py * 10
-        self.wing1.rotation = -math.degrees(angle) + 20
+        # Base wing positions (offset perpendicular to heading).
+        # Shift the wings slightly backward along the heading (towards the
+        # tail) so they do not overlap the eyes/head which sit forward.
+        wing_back = 16.0  # how far to move wings back relative to body
+        self.wing1.x = x + px * 10 - dx * wing_back
+        self.wing1.y = y + py * 10 - dy * wing_back
+        self.wing2.x = x - px * 10 - dx * wing_back
+        self.wing2.y = y - py * 10 - dy * wing_back
 
-        self.wing2.x = x - px * 10
-        self.wing2.y = y - py * 10
-        self.wing2.rotation = -math.degrees(angle) - 20
+        # Compute current speed to scale flap frequency and amplitude.
+        # Use a small lower bound to ensure a visible idle wiggle.
+        speed = math.hypot(self.fly.vx, self.fly.vy)
+        speed_factor = min(1.0, speed / (MAX_SPEED or 1.0))
+
+        # Flap frequency (Hz) and amplitude (degrees) scale with speed:
+        # - at rest there is a subtle wiggle (freq ~2Hz, amp ~6deg)
+        # - at top speed the wings flap faster and wider
+        freq = 2.0 + 12.0 * speed_factor
+        amp_deg = 6.0 + 14.0 * speed_factor
+
+        # Time-based oscillation for smooth continuous motion.
+        phase = time.time() * (2.0 * math.pi) * freq
+        angle_offset = math.sin(phase) * amp_deg
+
+        # Apply rotation offsets to each wing so they move oppositely for a
+        # natural flapping appearance.
+        self.wing1.rotation = -math.degrees(angle) + 20 + angle_offset
+        self.wing2.rotation = -math.degrees(angle) - 20 - angle_offset
+
+        # Small vertical bob of wings to emphasize movement (scaled by amp)
+        bob = math.sin(phase) * (amp_deg / 15.0) * 4.0
+        self.wing1.y += bob
+        self.wing2.y -= bob
 
         # Eyes.
         self.eye1.x = x + dx * 14 + px * 4

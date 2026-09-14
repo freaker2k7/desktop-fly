@@ -1,4 +1,4 @@
-# Desktop Fly
+# WIP: Desktop Fly
 
 Using the [Male CNS dataset](https://www.janelia.org/project-team/flyem/male-cns-connectome) to create a fly that lives on a desktop.
 
@@ -16,13 +16,21 @@ To run the Desktop Fly simulation, follow these steps:
 git clone https://github.com/yourusername/desktop-fly.git
 cd desktop-fly
 ```
-2. Install the required dependencies:
+
+2. (Optional) Configure a virtual environment:
+
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+```
+
+3. Install the required dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Run the simulation:
+4. Run the simulation:
 
 ```bash
 python main.py

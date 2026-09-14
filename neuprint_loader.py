@@ -55,6 +55,28 @@ def load_brain():
     neurons_df = neurons
     edges_df = edges
 
+    # # Helper to print dataframes or table-like objects safely.
+    # def _print_table(name, table):
+    #     if table is None:
+    #         print(f"{name}: <None>")
+    #         return
+    #     try:
+    #         # If object provides `to_string` (pandas DataFrame / Series), use
+    #         # it to render the full table. This avoids truncated reprs.
+    #         if hasattr(table, "to_string"):
+    #             shape = getattr(table, "shape", None)
+    #             print(f"{name} (shape={shape}):")
+    #             print(table.to_string())
+    #         else:
+    #             # Fallback: print length and repr
+    #             length = len(table) if hasattr(table, "__len__") else "?"
+    #             print(f"{name} (len={length}): {table}")
+    #     except Exception as e:
+    #         print(f"Failed to print {name}: {e}")
+
+    # _print_table("neurons_df", neurons_df)
+    # _print_table("edges_df", edges_df)
+
     if hasattr(neurons_df, "columns") and hasattr(edges_df, "columns"):
         ncols = set(neurons_df.columns)
         ecols = set(edges_df.columns)
@@ -142,12 +164,40 @@ def load_brain():
 
             weight = float(row.get("weight", 1.0))
 
-            weight = min(
-                0.25,
-                math.log1p(weight) / 20.0,
-            )
+            # Normalize raw weight into a small bounded value suitable
+            # for our simple integrate-and-fire model.
+            weight = min(0.25, math.log1p(weight) / 20.0)
 
-            brain.edges.append((src, dst, weight))
+            # Extract ROI information if present on the edge row. Many
+            # neuPrint exports include an `roi` column indicating the
+            # region-of-interest for this connection (e.g. 'GNG'). If
+            # present, keep it alongside the edge so the Brain can
+            # modulate signal propagation based on region locality.
+            roi = None
+            if "roi" in row.index and row["roi"] is not None:
+                try:
+                    roi = str(row["roi"])
+                except Exception:
+                    roi = None
+
+            # Remember per-neuron ROI if we have it from edges (first
+            # seen wins). This helps the Brain compare source/destination
+            # regions cheaply at runtime.
+            if roi is not None:
+                try:
+                    if src in brain.neurons:
+                        if getattr(brain.neurons[src], "roi", None) is None:
+                            brain.neurons[src].roi = roi
+                    if dst in brain.neurons:
+                        if getattr(brain.neurons[dst], "roi", None) is None:
+                            brain.neurons[dst].roi = roi
+                except Exception:
+                    pass
+
+            # Store ROI with the edge as a 4-tuple. The Brain accepts both
+            # (src,dst,weight) and (src,dst,weight,roi) formats for
+            # backward compatibility.
+            brain.edges.append((src, dst, weight, roi if roi is not None else None))
 
             if len(brain.edges) >= MAX_CONNECTIONS:
                 break
