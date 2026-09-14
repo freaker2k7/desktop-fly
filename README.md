@@ -1,25 +1,34 @@
-Go OpenGL plot scaffold
+# Desktop Fly
 
-This folder contains a minimal Go program that opens an OpenGL window using
-`glfw` + `go-gl`. It is a scaffold for the web-plot → OpenGL refactor.
+A minimal desktop application for visualizing fly neuron data using OpenGL.
 
-Build (macOS) notes:
+## Features
 
-- Install GLFW system dependency (Homebrew):
+- Visualize fly neuron data in 3D using OpenGL.
+- Load neuron and skeleton data from CSV files.
+- Interactive camera controls for exploring the 3D scene.
+- Support for multiple neuron datasets and easy switching between them.
+- Export visualizations as images or 3D models.
 
-  brew install glfw
+## Installation
 
-- Build using `go build` inside this folder (requires CGO environment):
+```bash
+git clone https://github.com/yourusername/desktop-fly.git
+cd desktop-fly
+pip install -r requirements.txt
+```
 
-  cd go
-  go mod tidy
-  go build -o desktop-fly
+## Create Dataset
 
-- Run:
+```bash
+python scripts/get_neurons.py --root KC
+python scripts/get_neurons.py --root HBeyelet
+python scripts/get_neurons.py --root TTMn
+```
 
-  ./desktop-fly
+# Build and Run
 
-Next steps:
-- Implement loading neuron/skeleton data (CSV) and draw nodes/edges.
-- Implement camera pan so the fly is always centered.
-- Replace immediate-mode placeholder with actual GL rendering of graph.
+```bash
+go build
+./desktop-fly
+```
