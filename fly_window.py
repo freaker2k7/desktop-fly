@@ -5,6 +5,7 @@ import time
 import pyglet
 from brain import Brain
 from fly import Fly
+from plot import Plot
 from pyglet import shapes
 from settings import BRAIN_HZ, MAX_SPEED
 
@@ -48,6 +49,15 @@ class FlyWindow(pyglet.window.Window):
         self.set_location(0, 0)
 
         self.brain = brain
+
+        # External 3D plot for visualizing neurons/edges and spikes.
+        try:
+            self.plot = Plot(self.brain)
+            # write an HTML file and open it once so user can interact with it.
+            # self.plot.show(filename="brain_plot.html", auto_open=True)
+            self.plot.show(auto_open=True)
+        except Exception:
+            self.plot = None
 
         self.fly = Fly(
             self.screen_width,
@@ -146,6 +156,19 @@ class FlyWindow(pyglet.window.Window):
             )
 
             turn, thrust = self.brain.step(sensors)
+
+            # Detect neurons that spiked this timestep (activity set to 1.0)
+            try:
+                triggered = [
+                    nid
+                    for nid, n in self.brain.neurons.items()
+                    if getattr(n, "activity", 0.0) >= 0.9
+                ]
+                if self.plot is not None and triggered:
+                    # update external plot to highlight spikes
+                    self.plot.update(triggered)
+            except Exception:
+                pass
 
             self.fly.turn = turn
             self.fly.thrust = thrust

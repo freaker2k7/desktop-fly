@@ -3,3 +3,4 @@ numpy
 Pillow
 python-dotenv
 pyglet
+plotly
