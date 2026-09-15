@@ -85,9 +85,9 @@ jobs:
         export GOOS=${{ matrix.GOOS }}
         export GOARCH=${{ matrix.GOARCH }}
         OUT=${{ matrix.out }}
-        go build -o "$OUT" main.go
+        go build -o "$OUT"
         echo "Running tests"
-        go test ./...
+        go test
 
     - name: Zip artifact
       run: |
