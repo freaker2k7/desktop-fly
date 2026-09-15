@@ -183,7 +183,7 @@ jobs:
 
     - name: Promote patch in VERSION
       env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ secrets.VARIABLES_PAT }}
       run: |
         set -euo pipefail
         IFS='.' read -r MAJOR MINOR PATCH <<< "${{ vars.VERSION }}"
