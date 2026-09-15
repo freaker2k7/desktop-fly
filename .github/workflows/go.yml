@@ -59,12 +59,15 @@ jobs:
           echo "No successful data workflow run found" >&2
           exit 1
         fi
-        ART_ID=$(gh api repos/${{ github.repository }}/actions/runs/$RUN_ID/artifacts --jq '.artifacts[] | select(.name=="data") | .id')
-        if [ -z "$ART_ID" ]; then
+        DOWNLOAD_URL=$(gh api repos/${{ github.repository }}/actions/runs/$RUN_ID/artifacts --jq '.artifacts[] | select(.name=="data") | .archive_download_url')
+        if [ -z "$DOWNLOAD_URL" ]; then
           echo "No data artifact found in run $RUN_ID" >&2
           exit 1
         fi
-        gh api repos/${{ github.repository }}/actions/artifacts/$ART_ID/zip --method GET --silent > data.zip
+        # Remove surrounding quotes if present
+        DOWNLOAD_URL=${DOWNLOAD_URL%"}
+        DOWNLOAD_URL=${DOWNLOAD_URL#"}
+        curl -L -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -o data.zip "$DOWNLOAD_URL"
 
     - name: Unpack data (Linux/macOS)
       if: runner.os != 'Windows'
