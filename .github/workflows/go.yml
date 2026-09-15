@@ -63,16 +63,15 @@ jobs:
     - name: Archive the exacutable desktopfly with the data folder into a ZIP file
       run: zip -r desktopfly.zip desktopfly data
 
-    - name: Create tag (gh)
+    - name: Create tag and push
       id: create_tag
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        set -euo pipefail
+        set -e
         TAG=v${{ vars.VERSION }}.$(date +%Y%m%d%H%M%S)
-        SHA=$(git rev-parse HEAD)
-        gh api --method POST /repos/${{ github.repository }}/git/refs -f ref=refs/tags/$TAG -f sha=$SHA
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git tag "$TAG"
+        git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" "$TAG"
         echo "tag=$TAG" >> $GITHUB_OUTPUT
 
     - name: Release
