@@ -90,15 +90,18 @@ jobs:
 
     - name: Unpack data (Linux/macOS)
       if: runner.os != 'Windows'
-      run: unzip data.zip -d .
+      run: |
+        unzip data.zip -d .
+        ls -lah data
 
     - name: Unpack data (Windows)
       if: runner.os == 'Windows'
       shell: powershell
       run: |
-        Expand-Archive -LiteralPath data.zip -DestinationPath .
-        dir .
-        dir data
+        $ErrorActionPreference = 'Stop'
+        New-Item -ItemType Directory -Path 'data'
+        Expand-Archive -LiteralPath data.zip -DestinationPath 'data'
+        dir 'data'
 
     - name: Install system deps (robust)
       if: runner.os == 'Linux'
@@ -148,10 +151,7 @@ jobs:
     - name: Zip artifact (Windows)
       if: runner.os == 'Windows'
       shell: powershell
-      run: |
-        dir .
-        dir data
-        Compress-Archive -Path "${{ matrix.out }}", "data" -DestinationPath "${{ matrix.zip }}"
+      run: Compress-Archive -Path "${{ matrix.out }}", "data" -DestinationPath "${{ matrix.zip }}"
 
     - name: Upload artifact
       uses: actions/upload-artifact@v7
