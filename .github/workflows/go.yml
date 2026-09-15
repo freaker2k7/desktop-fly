@@ -91,6 +91,15 @@ jobs:
         gh api --method POST /repos/${{ github.repository }}/git/refs -f ref=refs/tags/$TAG -f sha=$SHA
         echo "tag=$TAG" >> $GITHUB_OUTPUT
 
+    - name: Promote patch in vars.VERSION
+      run: |
+        set -euo pipefail
+        IFS='.' read -r MAJOR MINOR PATCH <<< "${{ vars.VERSION }}"
+        PATCH=$((PATCH + 1))
+        echo "New version: $MAJOR.$MINOR.$PATCH"
+        echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+        gh api --method PATCH /repos/${{ github.repository }}/actions/variables/VERSION -f value="$MAJOR.$MINOR.$PATCH"
+
     - name: Release
       uses: softprops/action-gh-release@v3
       with:
