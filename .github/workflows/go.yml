@@ -58,13 +58,28 @@ jobs:
       run: go mod tidy
 
     - name: Build
-      run: go build
+      run: |
+        echo "Building MacOS ARM64"
+        GOOS=darwin GOARCH=arm64 go build -o desktopfly_macos_arm64 main.go
+        echo "Building Linux AMD64"
+        GOOS=linux GOARCH=amd64 go build -o desktopfly_amd64 main.go
+        echo "Building Linux ARM64"
+        GOOS=linux GOARCH=arm64 go build -o desktopfly_linux_arm64 main.go
+        echo "Building Linux X86_64"
+        GOOS=linux GOARCH=x86_64 go build -o desktopfly_x86_64 main.go
+        echo "Building Windows AMD64"
+        GOOS=windows GOARCH=amd64 go build -o desktopfly_win64.exe main.go
 
     - name: Test
       run: go test
 
     - name: Archive the exacutable desktopfly with the data folder into a ZIP file
-      run: zip -r desktopfly.zip desktopfly data
+      run: |
+        zip -r desktopfly_macos_arm64.zip desktopfly_macos_arm64 data
+        zip -r desktopfly_amd64.zip desktopfly_amd64 data
+        zip -r desktopfly_linux_arm64.zip desktopfly_linux_arm64 data
+        zip -r desktopfly_x86_64.zip desktopfly_x86_64 data
+        zip -r desktopfly_win64.zip desktopfly_win64.exe data
 
     - name: Create tag (gh)
       id: create_tag
@@ -79,5 +94,10 @@ jobs:
     - name: Release
       uses: softprops/action-gh-release@v3
       with:
-        files: desktopfly.zip
+        files: |
+          desktopfly_macos_arm64.zip
+          desktopfly_amd64.zip
+          desktopfly_linux_arm64.zip
+          desktopfly_x86_64.zip
+          desktopfly_win64.zip
         tag_name: ${{ steps.create_tag.outputs.tag }}
