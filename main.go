@@ -29,7 +29,7 @@ func main() {
 		dir := filepath.Dir(exePath)
 		DataDir = filepath.Join(dir, DataDir)
 
-		fmt.Printf("DataDir set to: %s ; %v\n", DataDir, DataDir)
+		fmt.Printf("DataDir set to: %s\n", DataDir)
 	}
 
 	// Load Body (brain + eyes + wings)

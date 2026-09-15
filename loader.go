@@ -356,7 +356,7 @@ func LoadCombinedBrain(roots []string, dataDir string, maxNeurons int, maxConnec
 		mergeBrain(merged, b)
 	}
 	if len(merged.Neurons) == 0 {
-		return nil, fmt.Errorf("no neurons loaded for roots: %v; at dataDir: %s", roots, dataDir)
+		return nil, fmt.Errorf("no neurons loaded for roots: %v from %s", roots, dataDir)
 	}
 	return merged, nil
 }
