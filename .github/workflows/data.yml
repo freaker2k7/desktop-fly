@@ -24,11 +24,10 @@ jobs:
     - name: Fetch datasets
       run: |
         source venv/bin/activate
-        DATASETS
-        python scripts/get_neurons.py --root DNge104
-        python scripts/get_neurons.py --root KC
-        python scripts/get_neurons.py --root HBeyelet
-        python scripts/get_neurons.py --root TTMn
+        IFS=$' ' read -r -a DATASETS <<< "${{ vars.DATASETS }}"
+        for DATASET in "${DATASETS[@]}"; do
+          python scripts/get_neurons.py --root "$DATASET"
+        done
       env:
         NEUPRINT_TOKEN: ${{ secrets.NEUPRINT_TOKEN }}
       shell: bash
