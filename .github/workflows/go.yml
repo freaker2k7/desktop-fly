@@ -22,7 +22,7 @@ jobs:
 
     - name: Get Datasets
       run: |
-          pip install -r requirements.txt
+          pip install -r scripts/requirements.txt
           python scripts/get_neurons.py --root DNge104
           python scripts/get_neurons.py --root KC
           python scripts/get_neurons.py --root HBeyelet
