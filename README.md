@@ -21,6 +21,7 @@ pip install -r requirements.txt
 ## Create Dataset
 
 ```bash
+python scripts/get_neurons.py --root DNge104
 python scripts/get_neurons.py --root KC
 python scripts/get_neurons.py --root HBeyelet
 python scripts/get_neurons.py --root TTMn

@@ -1,0 +1,46 @@
+name: Desktop Fly CI
+
+on:
+  push:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Set up Go
+      uses: actions/setup-go@v7
+      with:
+        go-version: '1.25.0'
+
+    - name: Set up Python
+      uses: actions/setup-python@v7
+      with:
+        python-version: '3.12'
+
+    - name: Get Datasets
+      run: |
+          pip install -r requirements.txt
+          python scripts/get_neurons.py --root DNge104
+          python scripts/get_neurons.py --root KC
+          python scripts/get_neurons.py --root HBeyelet
+          python scripts/get_neurons.py --root TTMn
+      env:
+        NEUPRINT_TOKEN: ${{ secrets.NEUPRINT_TOKEN }}
+
+    - name: Tidy Go Modules
+      run: go mod tidy
+
+    - name: Build
+      run: go build -v ./...
+
+    - name: Test
+      run: go test -v ./...
+
+    - name: Archive the exacutable desktopfly with the data folder into a ZIP file
+      run: zip -r desktopfly.zip desktopfly data
+
+    - name: Create Release
+      run: gh release create v${{ vars.VERSION }}.$(date +%Y%m%d%H%M%S) desktopfly.zip --title "v${{ vars.VERSION }}.$(date +%Y%m%d%H%M%S)" --notes "${{ vars.RELEASE_NOTES }} [$(date +%Y%m%d%H%M%S)]"
