@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"fmt"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -24,23 +24,25 @@ func main() {
 		// Extract the directory from the full file path
 		dir := filepath.Dir(filename)
 		DataDir = filepath.Join(dir, DataDir)
+
+		fmt.Printf("DataDir set to: %s ; %v\n", DataDir, DataDir)
 	}
 
 	// Load Body (brain + eyes + wings)
 	body, err := NewBody(DataDir)
 	if err != nil {
-		log.Fatalln("failed to load body modules:", err)
+		panic(fmt.Sprintf("failed to load body modules: %v", err))
 	}
 
 	// Load skeleton segments for plotting from all configured roots
 	roots := []string{RootNeuron, BrainNeuron, EyesNeuron, WingsNeuron}
 	segments, nodePositions, nodeIDs, minX, minY, maxX, maxY, err := LoadSkeletons(roots, DataDir)
 	if err != nil {
-		log.Fatalln("failed to load skeletons:", err)
+		panic(fmt.Sprintf("failed to load skeletons: %v", err))
 	}
 
 	if err := glfw.Init(); err != nil {
-		log.Fatalln("failed to init glfw:", err)
+		panic(fmt.Sprintf("failed to init glfw: %v", err))
 	}
 	defer glfw.Terminate()
 
@@ -53,27 +55,27 @@ func main() {
 	// Create plot window first and make its context current to initialize GL.
 	plotWin, err := NewPlotWindow(1024, 768, "Neuron Plot")
 	if err != nil {
-		log.Fatalln("failed to create plot window:", err)
+		panic(fmt.Sprintf("failed to create plot window: %v", err))
 	}
 
 	plotWin.Window.MakeContextCurrent()
 	if err := gl.Init(); err != nil {
-		log.Fatalln("failed to init gl:", err)
+		panic(fmt.Sprintf("failed to init gl: %v", err))
 	}
 
 	if err := plotWin.InitProgram(); err != nil {
-		log.Fatalln("failed to init GL program:", err)
+		panic(fmt.Sprintf("failed to init GL program: %v", err))
 	}
 
 	// Upload skeleton segments (if any)
 	if len(segments) > 0 {
 		if err := plotWin.UploadSegments(segments); err != nil {
-			log.Println("warning: failed to upload segments:", err)
+			fmt.Printf("warning: failed to upload segments: %v\n", err)
 		}
 		// Ensure node positions are uploaded (no-op change to keep consistent)
 		if len(nodePositions) > 0 {
 			if err := plotWin.UploadNodePositions(nodePositions, nodeIDs); err != nil {
-				log.Println("warning: failed to upload node positions:", err)
+				fmt.Printf("warning: failed to upload node positions: %v\n", err)
 			}
 		}
 		// nodes rendering removed; only skeleton segments are uploaded
@@ -97,13 +99,13 @@ func main() {
 	glfw.WindowHint(glfw.Resizable, glfw.False)
 	fw, err := NewFlyWindow(body, plotWin.Window)
 	if err != nil {
-		log.Fatalln("failed to create fly window:", err)
+		panic(fmt.Sprintf("failed to create fly window: %v", err))
 	}
 
 	// Initialize GL resources for the fly window (make its context current)
 	fw.Window.MakeContextCurrent()
 	if err := fw.InitGL(); err != nil {
-		log.Fatalln("failed to init fly GL:", err)
+		panic(fmt.Sprintf("failed to init fly GL: %v", err))
 	}
 
 	// Main loop: render both windows and step brain at BRAIN_HZ
