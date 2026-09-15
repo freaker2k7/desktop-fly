@@ -40,18 +40,22 @@ func (b *Brain) Step(sensory map[string]float64) (float64, float64) {
 	left := sensory["left"]
 	right := sensory["right"]
 	mouse := sensory["mouse"]
-	brightness := sensory["brightness"]
+	view := sensory["view"]
 
-	for i := 0; i < len(neurons) && i < 8; i++ {
+	// for i := 0; i < len(neurons) && i < 8; i++ {
+	for i := range neurons {
 		switch i % 4 {
 		case 0:
 			neurons[i].Potential += left * 0.35
 		case 1:
 			neurons[i].Potential += right * 0.35
 		case 2:
-			neurons[i].Potential += mouse * 0.5
+			// prefer vibrant "view" signals to encourage resting on
+			// colorful regions
+			neurons[i].Potential += view * 0.6
 		case 3:
-			neurons[i].Potential += brightness * 0.15
+			// mouse still provides urgency but is secondary to view
+			neurons[i].Potential += mouse * 0.5
 		}
 	}
 
@@ -111,5 +115,20 @@ func (b *Brain) Step(sensory map[string]float64) (float64, float64) {
 
 	t := math.Max(-1.0, math.Min(1.0, turn/scale))
 	th := math.Max(0.0, math.Min(1.0, thrust/scale))
+
+	// Behavior overrides: if mouse is near, run away (strong thrust
+	// and steer away from mouse). Otherwise, prefer to rest on vibrant
+	// colors by reducing thrust proportional to view.
+	if mouse > 0.6 {
+		// steer away: use right-left difference as direction
+		dir := right - left
+		t = math.Max(-1.0, math.Min(1.0, dir*1.5))
+		th = math.Max(th, math.Min(1.0, 0.9+0.1*mouse))
+	} else {
+		// reduce thrust when vibrant colors are present to encourage
+		// resting on them (view in [0..1])
+		th = th * (1.0 - 0.7*view)
+	}
+
 	return t, th
 }

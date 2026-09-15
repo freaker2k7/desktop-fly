@@ -7,7 +7,8 @@ import (
 
 // Configuration with sensible defaults; override using environment vars.
 var (
-	RootNeuron  = getenv("ROOT_NEURON", "KC")
+	RootNeuron  = getenv("ROOT_NEURON", "DNge104")
+	BrainNeuron = getenv("BRAIN_NEURON", "KC")
 	EyesNeuron  = getenv("EYES_NEURON", "HBeyelet")
 	WingsNeuron = getenv("WINGS_NEURON", "TTMn")
 	DataDir     = getenv("DATA_DIR", "data")

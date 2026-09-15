@@ -338,3 +338,25 @@ func mathLog1p(x float64) float64 {
 func stringsContainsFold(s, substr string) bool {
 	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
 }
+
+// LoadCombinedBrain loads multiple neuron modules (by root name) and
+// merges them into a single Brain. Missing modules are tolerated; at
+// least one module must provide neurons or an error is returned.
+func LoadCombinedBrain(roots []string, dataDir string, maxNeurons int, maxConnections int) (*Brain, error) {
+	merged := NewBrain()
+	for _, r := range roots {
+		if r == "" {
+			continue
+		}
+		b, err := LoadBrain(r, dataDir, maxNeurons, maxConnections)
+		if err != nil {
+			// skip missing/invalid roots
+			continue
+		}
+		mergeBrain(merged, b)
+	}
+	if len(merged.Neurons) == 0 {
+		return nil, fmt.Errorf("no neurons loaded for roots: %v", roots)
+	}
+	return merged, nil
+}

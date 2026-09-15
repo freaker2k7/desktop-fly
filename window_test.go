@@ -6,7 +6,7 @@ import (
 )
 
 func TestFlyWindowBrainLoopRuns(t *testing.T) {
-	body := &Body{Brain: NewBrain(), Eyes: NewBrain(), Wings: NewBrain()}
+	body := &Body{Brain: NewBrain()}
 	fw := &FlyWindow{Body: body, Fly: NewFly(200, 200), Running: true}
 	// start brainLoop in goroutine and stop shortly after
 	go fw.brainLoop()

@@ -142,3 +142,53 @@ func LoadSkeletonSegments(root string, dataDir string) ([]float32, []float32, []
 	fmt.Printf("LoadSkeletonSegments: nodes=%d segments=%d bbox=(%f,%f)-(%f,%f)\n", len(nodeIDs), len(segments)/4, minX, minY, maxX, maxY)
 	return segments, nodePositions, nodeIDs, minX, minY, maxX, maxY, nil
 }
+
+// LoadSkeletons aggregates skeleton segments and node positions from
+// multiple roots. It calls LoadSkeletonSegments for each root and
+// combines results, computing a bounding box that encloses all roots.
+func LoadSkeletons(roots []string, dataDir string) ([]float32, []float32, []int64, float32, float32, float32, float32, error) {
+	var allSegs []float32
+	var allNodes []float32
+	var allIDs []int64
+	var minX, minY, maxX, maxY float32
+	first := true
+
+	for _, r := range roots {
+		if r == "" {
+			continue
+		}
+		segs, nodes, ids, sx0, sy0, sx1, sy1, err := LoadSkeletonSegments(r, dataDir)
+		if err != nil {
+			continue
+		}
+		if len(nodes) > 0 {
+			allNodes = append(allNodes, nodes...)
+			allIDs = append(allIDs, ids...)
+		}
+		if len(segs) > 0 {
+			allSegs = append(allSegs, segs...)
+		}
+		if first && (len(nodes) > 0 || len(segs) > 0) {
+			minX, minY, maxX, maxY = sx0, sy0, sx1, sy1
+			first = false
+		} else if !first {
+			if sx0 < minX {
+				minX = sx0
+			}
+			if sy0 < minY {
+				minY = sy0
+			}
+			if sx1 > maxX {
+				maxX = sx1
+			}
+			if sy1 > maxY {
+				maxY = sy1
+			}
+		}
+	}
+	if first {
+		// no files found for any root
+		return nil, nil, nil, 0, 0, 0, 0, fmt.Errorf("no skeletons found for roots: %v", roots)
+	}
+	return allSegs, allNodes, allIDs, minX, minY, maxX, maxY, nil
+}

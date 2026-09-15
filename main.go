@@ -19,55 +19,11 @@ func main() {
 		log.Fatalln("failed to load body modules:", err)
 	}
 
-	// Load skeleton segments for plotting (start with brain root)
-	segments, nodePositions, nodeIDs, minX, minY, maxX, maxY, err := LoadSkeletonSegments(RootNeuron, DataDir)
+	// Load skeleton segments for plotting from all configured roots
+	roots := []string{RootNeuron, BrainNeuron, EyesNeuron, WingsNeuron}
+	segments, nodePositions, nodeIDs, minX, minY, maxX, maxY, err := LoadSkeletons(roots, DataDir)
 	if err != nil {
 		log.Fatalln("failed to load skeletons:", err)
-	}
-
-	// Also append nodes for eyes and wings so they appear in the plot
-	if eyesSegs, eyesNodes, eyesIDs, ex0, ey0, ex1, ey1, err := LoadSkeletonSegments(EyesNeuron, DataDir); err == nil {
-		if len(eyesNodes) > 0 {
-			nodePositions = append(nodePositions, eyesNodes...)
-			nodeIDs = append(nodeIDs, eyesIDs...)
-			if ex0 < minX {
-				minX = ex0
-			}
-			if ey0 < minY {
-				minY = ey0
-			}
-			if ex1 > maxX {
-				maxX = ex1
-			}
-			if ey1 > maxY {
-				maxY = ey1
-			}
-		}
-		// also append any segments for eyes so skeletons show too
-		if len(eyesSegs) > 0 {
-			segments = append(segments, eyesSegs...)
-		}
-	}
-	if wSegs, wNodes, wIDs, wx0, wy0, wx1, wy1, err := LoadSkeletonSegments(WingsNeuron, DataDir); err == nil {
-		if len(wNodes) > 0 {
-			nodePositions = append(nodePositions, wNodes...)
-			nodeIDs = append(nodeIDs, wIDs...)
-			if wx0 < minX {
-				minX = wx0
-			}
-			if wy0 < minY {
-				minY = wy0
-			}
-			if wx1 > maxX {
-				maxX = wx1
-			}
-			if wy1 > maxY {
-				maxY = wy1
-			}
-		}
-		if len(wSegs) > 0 {
-			segments = append(segments, wSegs...)
-		}
 	}
 
 	if err := glfw.Init(); err != nil {
