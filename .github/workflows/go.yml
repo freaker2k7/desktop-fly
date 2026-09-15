@@ -45,9 +45,10 @@ jobs:
 
     - name: Fetch latest `data` artifact from `data.yml` (Bash)
       if: runner.os != 'Windows'
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         set -euo pipefail
-        echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
         RUN_ID=$(gh api repos/${{ github.repository }}/actions/workflows/data.yml/runs --jq '.workflow_runs[] | select(.conclusion=="success") | .id' | head -n1)
         if [ -z "$RUN_ID" ]; then
           echo "No successful data workflow run found" >&2
@@ -68,7 +69,6 @@ jobs:
       run: |
         $ErrorActionPreference = 'Stop'
         $token = "${{ env.GH_TOKEN }}"
-        $token | gh auth login --with-token
         $runsJson = gh api "repos/${{ github.repository }}/actions/workflows/data.yml/runs"
         $runs = $runsJson | ConvertFrom-Json
         $run = $runs.workflow_runs | Where-Object { $_.conclusion -eq 'success' } | Select-Object -First 1
@@ -172,25 +172,23 @@ jobs:
 
     - name: Create tag
       id: create_tag
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         set -euo pipefail
         TAG=v${{ vars.VERSION }}
-        echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
         gh api --method POST /repos/${{ github.repository }}/git/refs -f ref=refs/tags/$TAG -f sha=$(git rev-parse HEAD)
         echo "tag=$TAG" >> $GITHUB_OUTPUT
 
     - name: Promote patch in VERSION
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         set -euo pipefail
         IFS='.' read -r MAJOR MINOR PATCH <<< "${{ vars.VERSION }}"
         PATCH=$((PATCH + 1))
         echo "New version: $MAJOR.$MINOR.$PATCH"
-        GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
-        curl -sS -f -X PATCH "https://api.github.com/repos/${{ github.repository }}/actions/variables/VERSION" \
-          -H "Authorization: token $GITHUB_TOKEN" \
-          -H "Accept: application/vnd.github+json" \
-          -H "Content-Type: application/json" \
-          -d '{"name":"VERSION","value":"'$MAJOR.$MINOR.$PATCH'"}'
+        gh variable set VERSION --body "$MAJOR.$MINOR.$PATCH"
 
     - name: Release
       uses: softprops/action-gh-release@v3
