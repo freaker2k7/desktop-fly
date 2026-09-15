@@ -19,13 +19,6 @@ jobs:
             out: desktopfly_amd64
             zip: desktopfly_amd64.zip
 
-          - name: linux-arm64
-            runs_on: ubuntu-latest
-            GOOS: linux
-            GOARCH: arm64
-            out: desktopfly_arm64
-            zip: desktopfly_arm64.zip
-
           - name: macos-arm64
             runs_on: macos-latest
             GOOS: darwin
