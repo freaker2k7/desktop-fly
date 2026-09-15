@@ -171,6 +171,13 @@ jobs:
       with:
         path: dist
 
+    - name: List downloaded artifacts
+      run: |
+        set -euo pipefail
+        ls -lah dist
+        wc -l dist/* | grep zip
+        wc -l dist/*.zip | grep zip
+
     - name: Create tag
       id: create_tag
       env:
