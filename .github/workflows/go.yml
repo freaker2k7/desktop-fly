@@ -67,6 +67,7 @@ jobs:
       id: create_tag
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         set -euo pipefail
         TAG=v${{ vars.VERSION }}.$(date +%Y%m%d%H%M%S)
