@@ -64,7 +64,7 @@ jobs:
           echo "No data artifact found in run $RUN_ID" >&2
           exit 1
         fi
-        gh api repos/${{ github.repository }}/actions/artifacts/$ART_ID/zip --output data.zip
+        gh api repos/${{ github.repository }}/actions/artifacts/$ART_ID/zip --method GET --silent > data.zip
 
     - name: Unpack data (Linux/macOS)
       if: runner.os != 'Windows'
