@@ -2,23 +2,24 @@
 
 [![GitHub Build](https://github.com/freaker2k7/desktop-fly/actions/workflows/ci.yml/badge.svg)](https://github.com/freaker2k7/desktop-fly/actions)
 
-A minimal desktop application for visualizing fly neuron data using OpenGL.
+A minimal desktop application for visualizing a fly flying over your desktop and its neuron data using OpenGL.
+
+The neuron data is taken from [male-cns:v1.0](https://neuprint.janelia.org/) for a male Drosophila melanogaster (fruit fly) 🪰
 
 ## Features
 
-- Visualize fly neuron data in 3D using OpenGL.
-- Load neuron and skeleton data from CSV files.
-- Interactive camera controls for exploring the 3D scene.
-- Support for multiple neuron datasets and easy switching between them.
-- Export visualizations as images or 3D models.
+- Visualize a fly flying over your desktop using OpenGL.
+- Visualize fly neuron data using OpenGL.
+- Minimal and lightweight desktop application.
+- Cross-platform support (Windows, macOS, Linux).
 
 ## Installation
 
 1. Download the latest release from the [releases page](https://github.com/freaker2k7/desktop-fly/releases) for your operating system.
 2. Extract the downloaded archive to a desired location.
-3. Navigate to the extracted directory and run the application.
+3. Navigate to the extracted directory and run the application 🤝
 
-NOTE: On macOS, you may need to allow the application to run from the Security & Privacy settings if it is blocked by Gatekeeper.
+*NOTE: On macOS, you may need to allow the application to run from the Security & Privacy settings if it is blocked by Gatekeeper.*
 
 ## Development
 
@@ -52,3 +53,7 @@ go build
 go test
 ./desktop-fly
 ```
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/freaker2k7/desktop-fly/blob/master/LICENSE.md) file for details.
