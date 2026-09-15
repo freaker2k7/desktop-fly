@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -16,13 +17,16 @@ func main() {
 	runtime.LockOSThread()
 
 	if !strings.HasPrefix(DataDir, "/") {
-		_, filename, _, ok := runtime.Caller(0)
-		if !ok {
-			panic("Unable to get current file path")
+		// Use the running executable location (works when binary is distributed)
+		exePath, err := os.Executable()
+		if err != nil {
+			panic(fmt.Sprintf("Unable to get executable path: %v", err))
 		}
-
-		// Extract the directory from the full file path
-		dir := filepath.Dir(filename)
+		// resolve symlinks if any
+		if realExe, err := filepath.EvalSymlinks(exePath); err == nil {
+			exePath = realExe
+		}
+		dir := filepath.Dir(exePath)
 		DataDir = filepath.Join(dir, DataDir)
 
 		fmt.Printf("DataDir set to: %s ; %v\n", DataDir, DataDir)
