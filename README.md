@@ -56,4 +56,4 @@ go test
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](https://github.com/freaker2k7/desktop-fly/blob/master/LICENSE.md) file for details.
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/freaker2k7/desktop-fly?tab=MIT-1-ov-file) file for details.
