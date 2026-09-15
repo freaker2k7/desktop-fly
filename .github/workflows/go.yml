@@ -188,7 +188,7 @@ jobs:
         IFS='.' read -r MAJOR MINOR PATCH <<< "${{ vars.VERSION }}"
         PATCH=$((PATCH + 1))
         echo "New version: $MAJOR.$MINOR.$PATCH"
-        gh variable set VERSION --body "$MAJOR.$MINOR.$PATCH"
+        gh variable set VERSION --body "$MAJOR.$MINOR.$PATCH" --repo ${{ github.repository }}
 
     - name: Release
       uses: softprops/action-gh-release@v3
