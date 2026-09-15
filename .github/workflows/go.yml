@@ -175,14 +175,26 @@ jobs:
       if: runner.os != 'Windows'
       run: |
         set -euo pipefail
+        # Move zip files to temporary names to avoid collisions with artifact directories
         for f in dist/*/*.zip; do
           if [ -f "$f" ]; then
-            mv "$f" dist/
+            base=$(basename "$f")
+            tmp="$base.tmp.$$"
+            mv "$f" "dist/$tmp"
           fi
         done
+
         # remove now-empty artifact directories
         for d in dist/*/; do
           [ -d "$d" ] && rm -rf "$d"
+        done
+
+        # Rename temp files to final names
+        for t in dist/*.tmp.*; do
+          [ -f "$t" ] || continue
+          name=$(basename "$t")
+          final=${name%%.tmp.*}
+          mv "$t" "dist/$final"
         done
       shell: bash
 
