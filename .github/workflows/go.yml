@@ -171,12 +171,23 @@ jobs:
       with:
         path: dist
 
-    - name: List downloaded artifacts
+    - name: Flatten downloaded artifacts
+      if: runner.os != 'Windows'
       run: |
         set -euo pipefail
-        ls -lah dist
-        wc -l dist/* | grep zip
-        wc -l dist/*.zip | grep zip
+        for f in dist/*/*.zip; do
+          if [ -f "$f" ]; then
+            mv "$f" dist/
+          fi
+        done
+        # remove now-empty artifact directories
+        for d in dist/*/; do
+          [ -d "$d" ] && rm -rf "$d"
+        done
+      shell: bash
+
+    - name: List downloaded artifacts
+      run: ls -lah dist
 
     - name: Create tag
       id: create_tag
