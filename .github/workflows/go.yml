@@ -129,11 +129,11 @@ jobs:
       shell: powershell
       run: |
         echo "Building ${{ matrix.name }}"
-        $env:CGO_ENABLED=1
-        $env:GOOS=${{ matrix.GOOS }}
-        $env:GOARCH=${{ matrix.GOARCH }}
-        $OUT=${{ matrix.out }}
-        go build -o "$OUT"
+        $env:CGO_ENABLED = '1'
+        $env:GOOS = '${{ matrix.GOOS }}'
+        $env:GOARCH = '${{ matrix.GOARCH }}'
+        $env:OUT = '${{ matrix.out }}'
+        go build -o $env:OUT
         echo "Running tests"
         go test
 
