@@ -91,7 +91,8 @@ jobs:
     - name: Unpack data (Linux/macOS)
       if: runner.os != 'Windows'
       run: |
-        unzip data.zip -d .
+        mkdir -p data
+        unzip data.zip -d data
         ls -lah data
 
     - name: Unpack data (Windows)
