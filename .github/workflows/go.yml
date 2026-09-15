@@ -50,11 +50,33 @@ jobs:
       with:
         go-version: '1.25.0'
 
-    - name: Download dataset artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: data
-        path: data
+    - name: Set up gh
+      uses: cli/gh-action@v2
+
+    - name: Fetch latest `data` artifact from `data.yml`
+      run: |
+        set -euo pipefail
+        echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+        RUN_ID=$(gh api repos/${{ github.repository }}/actions/workflows/data.yml/runs --jq '.workflow_runs[] | select(.conclusion=="success") | .id' | head -n1)
+        if [ -z "$RUN_ID" ]; then
+          echo "No successful data workflow run found" >&2
+          exit 1
+        fi
+        ART_ID=$(gh api repos/${{ github.repository }}/actions/runs/$RUN_ID/artifacts --jq '.artifacts[] | select(.name=="data") | .id')
+        if [ -z "$ART_ID" ]; then
+          echo "No data artifact found in run $RUN_ID" >&2
+          exit 1
+        fi
+        gh api repos/${{ github.repository }}/actions/artifacts/$ART_ID/zip --output data.zip
+
+    - name: Unpack data (Linux/macOS)
+      if: runner.os != 'Windows'
+      run: unzip data.zip -d .
+
+    - name: Unpack data (Windows)
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: Expand-Archive -LiteralPath data.zip -DestinationPath .
 
     - name: Tidy Go Modules
       run: go mod tidy
