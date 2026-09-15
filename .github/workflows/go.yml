@@ -68,18 +68,23 @@ jobs:
       run: |
         $ErrorActionPreference = 'Stop'
         $token = "${{ env.GH_TOKEN }}"
-        gh auth login -h github.com
-        $run_id = gh api "repos/${{ github.repository }}/actions/workflows/data.yml/runs" --jq '.workflow_runs[] | select(.conclusion=="success") | .id' | Select-Object -First 1
-        if (-not $run_id) {
+        $token | gh auth login --with-token
+        $runsJson = gh api "repos/${{ github.repository }}/actions/workflows/data.yml/runs"
+        $runs = $runsJson | ConvertFrom-Json
+        $run = $runs.workflow_runs | Where-Object { $_.conclusion -eq 'success' } | Select-Object -First 1
+        if (-not $run) {
           Write-Error 'No successful data workflow run found'
           exit 1
         }
-        $download_url = gh api "repos/${{ github.repository }}/actions/runs/$run_id/artifacts" --jq '.artifacts[] | select(.name=="data") | .archive_download_url'
-        $download_url = $download_url.Trim('"')
-        if (-not $download_url) {
+        $run_id = $run.id
+        $artifactsJson = gh api "repos/${{ github.repository }}/actions/runs/$run_id/artifacts"
+        $artifacts = $artifactsJson | ConvertFrom-Json
+        $artifact = $artifacts.artifacts | Where-Object { $_.name -eq 'data' } | Select-Object -First 1
+        if (-not $artifact) {
           Write-Error "No data artifact found in run $run_id"
           exit 1
         }
+        $download_url = $artifact.archive_download_url
         Invoke-WebRequest -Uri $download_url -Headers @{ Authorization = "token $token" } -OutFile data.zip
       shell: powershell
 
