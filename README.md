@@ -13,6 +13,8 @@ I didn't use the whole dataset, only a few neuron types:
 - HBeyelet - [Horizontal system B eyelet](https://www.researchgate.net/publication/379948772_Connectome-driven_neural_inventory_of_a_complete_visual_system), for the visual system
 - TTMn - [Tergotrochanteral motor neuron](https://pubmed.ncbi.nlm.nih.gov/11060245/), for the leg movement
 
+![Desktop Fly Screenshot](https://i.imgur.com/7sUKZYo.png)
+
 ## Features
 
 - Visualize a fly flying over your desktop using OpenGL.
