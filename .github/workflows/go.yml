@@ -63,10 +63,12 @@ jobs:
 
     - name: Fetch latest `data` artifact from `data.yml` (PowerShell)
       if: runner.os == 'Windows'
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         $ErrorActionPreference = 'Stop'
-        $token = "${{ secrets.GITHUB_TOKEN }}"
-        $token | gh auth login --with-token
+        $token = "${{ env.GH_TOKEN }}"
+        gh auth login -h github.com
         $run_id = gh api "repos/${{ github.repository }}/actions/workflows/data.yml/runs" --jq '.workflow_runs[] | select(.conclusion=="success") | .id' | Select-Object -First 1
         if (-not $run_id) {
           Write-Error 'No successful data workflow run found'
