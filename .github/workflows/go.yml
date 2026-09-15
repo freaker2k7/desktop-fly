@@ -9,7 +9,39 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: linux-amd64
+            runs_on: ubuntu-latest
+            GOOS: linux
+            GOARCH: amd64
+            out: desktopfly_amd64
+            zip: desktopfly_amd64.zip
+
+          - name: linux-arm64
+            runs_on: ubuntu-latest
+            GOOS: linux
+            GOARCH: arm64
+            out: desktopfly_linux_arm64
+            zip: desktopfly_linux_arm64.zip
+
+          - name: macos-arm64
+            runs_on: macos-latest
+            GOOS: darwin
+            GOARCH: arm64
+            out: desktopfly_macos_arm64
+            zip: desktopfly_macos_arm64.zip
+
+          - name: windows-amd64
+            runs_on: windows-latest
+            GOOS: windows
+            GOARCH: amd64
+            out: desktopfly_win64.exe
+            zip: desktopfly_win64.zip
+
+    runs-on: ${{ matrix.runs_on }}
+
     steps:
     - uses: actions/checkout@v7
 
@@ -18,80 +50,57 @@ jobs:
       with:
         go-version: '1.25.0'
 
-    - name: Set up Python
-      uses: actions/setup-python@v7
+    - name: Download dataset artifact
+      uses: actions/download-artifact@v4
       with:
-        python-version: '3.12'
-
-    - name: Install system deps (robust)
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y --no-install-recommends software-properties-common apt-transport-https ca-certificates
-        sudo add-apt-repository -y universe || true
-        sudo apt-get update
-        sudo apt-get install -y --no-install-recommends \
-          build-essential pkg-config \
-          libx11-dev libxrandr-dev libxcursor-dev libxinerama-dev libxi-dev libxfixes-dev libxxf86vm-dev \
-          libgl1-mesa-dev libglu1-mesa-dev
-
-    - name: Restore data cache
-      id: data-cache
-      uses: actions/cache@v6
-      with:
+        name: data
         path: data
-        key: data-${{ runner.os }}-neurons-${{ hashFiles('scripts/get_neurons.py','scripts/requirements.txt') }}
-        restore-keys: |
-          data-${{ runner.os }}-neurons-
-
-    - name: Get Datasets (only on cache miss)
-      if: steps.data-cache.outputs.cache-hit != 'true'
-      run: |
-        pip install -r scripts/requirements.txt
-        python scripts/get_neurons.py --root DNge104
-        python scripts/get_neurons.py --root KC
-        python scripts/get_neurons.py --root HBeyelet
-        python scripts/get_neurons.py --root TTMn
-      env:
-        NEUPRINT_TOKEN: ${{ secrets.NEUPRINT_TOKEN }}
 
     - name: Tidy Go Modules
       run: go mod tidy
 
-    - name: Build
+    - name: Build and Test
       run: |
-        echo "Building MacOS ARM64"
-        GOOS=darwin GOARCH=arm64 go build -o desktopfly_macos_arm64 main.go
-        echo "Building Linux AMD64"
-        GOOS=linux GOARCH=amd64 go build -o desktopfly_amd64 main.go
-        echo "Building Linux ARM64"
-        GOOS=linux GOARCH=arm64 go build -o desktopfly_linux_arm64 main.go
-        echo "Building Linux X86_64"
-        GOOS=linux GOARCH=x86_64 go build -o desktopfly_x86_64 main.go
-        echo "Building Windows AMD64"
-        GOOS=windows GOARCH=amd64 go build -o desktopfly_win64.exe main.go
+        echo "Building ${{ matrix.name }}"
+        export CGO_ENABLED=1
+        export GOOS=${{ matrix.GOOS }}
+        export GOARCH=${{ matrix.GOARCH }}
+        OUT=${{ matrix.out }}
+        go build -o "$OUT" main.go
+        echo "Running tests"
+        go test ./...
 
-    - name: Test
-      run: go test
-
-    - name: Archive the exacutable desktopfly with the data folder into a ZIP file
+    - name: Zip artifact
       run: |
-        zip -r desktopfly_macos_arm64.zip desktopfly_macos_arm64 data
-        zip -r desktopfly_amd64.zip desktopfly_amd64 data
-        zip -r desktopfly_linux_arm64.zip desktopfly_linux_arm64 data
-        zip -r desktopfly_x86_64.zip desktopfly_x86_64 data
-        zip -r desktopfly_win64.zip desktopfly_win64.exe data
+        zip -r "${{ matrix.zip }}" "${{ matrix.out }}" data
 
-    - name: Create tag (gh)
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.zip }}
+        path: ${{ matrix.zip }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: dist
+
+    - name: Create tag
       id: create_tag
       run: |
         set -euo pipefail
-        TAG=v${{ vars.VERSION }}.$(date +%Y%m%d%H%M%S)
-        SHA=$(git rev-parse HEAD)
+        TAG=v${{ vars.VERSION }}
         echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
-        gh api --method POST /repos/${{ github.repository }}/git/refs -f ref=refs/tags/$TAG -f sha=$SHA
+        gh api --method POST /repos/${{ github.repository }}/git/refs -f ref=refs/tags/$TAG -f sha=$(git rev-parse HEAD)
         echo "tag=$TAG" >> $GITHUB_OUTPUT
 
-    - name: Promote patch in vars.VERSION
+    - name: Promote patch in VERSION
       run: |
         set -euo pipefail
         IFS='.' read -r MAJOR MINOR PATCH <<< "${{ vars.VERSION }}"
@@ -103,10 +112,5 @@ jobs:
     - name: Release
       uses: softprops/action-gh-release@v3
       with:
-        files: |
-          desktopfly_macos_arm64.zip
-          desktopfly_amd64.zip
-          desktopfly_linux_arm64.zip
-          desktopfly_x86_64.zip
-          desktopfly_win64.zip
+        files: dist/*.zip
         tag_name: ${{ steps.create_tag.outputs.tag }}

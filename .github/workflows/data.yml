@@ -1,0 +1,40 @@
+name: Build Data Artifact
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-data:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Set up Python
+      uses: actions/setup-python@v7
+      with:
+        python-version: '3.12'
+
+    - name: Create venv and install deps
+      run: |
+        python -m venv venv
+        source venv/bin/activate
+        pip install -r scripts/requirements.txt
+      shell: bash
+
+    - name: Fetch datasets
+      run: |
+        source venv/bin/activate
+        DATASETS
+        python scripts/get_neurons.py --root DNge104
+        python scripts/get_neurons.py --root KC
+        python scripts/get_neurons.py --root HBeyelet
+        python scripts/get_neurons.py --root TTMn
+      env:
+        NEUPRINT_TOKEN: ${{ secrets.NEUPRINT_TOKEN }}
+      shell: bash
+
+    - name: Upload data artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: data
+        path: data
