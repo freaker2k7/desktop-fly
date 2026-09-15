@@ -112,7 +112,8 @@ jobs:
     - name: Tidy Go Modules
       run: go mod tidy
 
-    - name: Build and Test
+    - name: Build and Test (Linux/macOS)
+      if: runner.os != 'Windows'
       run: |
         echo "Building ${{ matrix.name }}"
         export CGO_ENABLED=1
@@ -123,9 +124,28 @@ jobs:
         echo "Running tests"
         go test
 
-    - name: Zip artifact
+    - name: Build and Test (Windows)
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        echo "Building ${{ matrix.name }}"
+        $env:CGO_ENABLED=1
+        $env:GOOS=${{ matrix.GOOS }}
+        $env:GOARCH=${{ matrix.GOARCH }}
+        $OUT=${{ matrix.out }}
+        go build -o "$OUT"
+        echo "Running tests"
+        go test
+
+    - name: Zip artifact (Linux/macOS)
+      if: runner.os != 'Windows'
       run: |
         zip -r "${{ matrix.zip }}" "${{ matrix.out }}" data
+
+    - name: Zip artifact (Windows)
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: Compress-Archive -Path "${{ matrix.out }}", "data" -DestinationPath "${{ matrix.zip }}"
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
