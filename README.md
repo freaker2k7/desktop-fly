@@ -3,8 +3,15 @@
 [![GitHub Build](https://github.com/freaker2k7/desktop-fly/actions/workflows/ci.yml/badge.svg)](https://github.com/freaker2k7/desktop-fly/actions)
 
 A minimal desktop application for visualizing a fly flying over your desktop and its neuron data using OpenGL.
+The fly "thinks" in terms of its neuron activity as we stream desktop screenshots and mouse movements into the neural network.
+The neuron data is taken from [male-cns:v1.0](https://neuprint.janelia.org/) for a male Drosophila (fruit fly) central nervous system 🪰
 
-The neuron data is taken from [male-cns:v1.0](https://neuprint.janelia.org/) for a male Drosophila melanogaster (fruit fly) 🪰
+I didn't use the whole dataset, only a few neuron types:
+
+- DNge104 - [Descending neuron](https://en.wikipedia.org/wiki/Descending_neuron), for the motor control
+- KC - [Kenyon cell](https://en.wikipedia.org/wiki/Kenyon_cell), for the [mushroom body](https://en.wikipedia.org/wiki/Mushroom_bodies) and learning processes
+- HBeyelet - [Horizontal system B eyelet](https://www.researchgate.net/publication/379948772_Connectome-driven_neural_inventory_of_a_complete_visual_system), for the visual system
+- TTMn - [Tergotrochanteral motor neuron](https://pubmed.ncbi.nlm.nih.gov/11060245/), for the leg movement
 
 ## Features
 
