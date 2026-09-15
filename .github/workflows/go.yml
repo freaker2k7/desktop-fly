@@ -50,6 +50,9 @@ jobs:
       with:
         go-version: '1.25.0'
 
+    - name: Set up gh
+      uses: cli/gh-action@v2
+
     - name: Fetch latest `data` artifact from `data.yml` (Bash)
       if: runner.os != 'Windows'
       run: |
@@ -71,19 +74,21 @@ jobs:
     - name: Fetch latest `data` artifact from `data.yml` (PowerShell)
       if: runner.os == 'Windows'
       run: |
-        $ErrorActionPreference = "Stop"
-        gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
+        $ErrorActionPreference = 'Stop'
+        $token = "${{ secrets.GITHUB_TOKEN }}"
+        $token | gh auth login --with-token
         $run_id = gh api "repos/${{ github.repository }}/actions/workflows/data.yml/runs" --jq '.workflow_runs[] | select(.conclusion=="success") | .id' | Select-Object -First 1
         if (-not $run_id) {
-          Write-Error "No successful data workflow run found"
+          Write-Error 'No successful data workflow run found'
           exit 1
         }
-        $download_url = gh api "repos/${{ github.repository }}/actions/runs/$run_id/artifacts" --jq '.artifacts[] | select(.name=="data") | .archive_download_url' | tr -d '"'
+        $download_url = gh api "repos/${{ github.repository }}/actions/runs/$run_id/artifacts" --jq '.artifacts[] | select(.name=="data") | .archive_download_url'
+        $download_url = $download_url.Trim('"')
         if (-not $download_url) {
           Write-Error "No data artifact found in run $run_id"
           exit 1
         }
-        Invoke-WebRequest -Uri $download_url -Headers @{ Authorization = "token ${{ secrets.GITHUB_TOKEN }}" } -OutFile data.zip
+        Invoke-WebRequest -Uri $download_url -Headers @{ Authorization = "token $token" } -OutFile data.zip
       shell: powershell
 
     - name: Unpack data (Linux/macOS)
