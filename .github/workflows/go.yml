@@ -50,9 +50,6 @@ jobs:
       with:
         go-version: '1.25.0'
 
-    - name: Set up gh
-      uses: cli/gh-action@v2
-
     - name: Fetch latest `data` artifact from `data.yml`
       run: |
         set -euo pipefail
