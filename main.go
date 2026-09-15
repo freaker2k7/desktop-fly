@@ -2,7 +2,9 @@ package main
 
 import (
 	"log"
+	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
@@ -12,6 +14,17 @@ import (
 func main() {
 	// On macOS GLFW and OpenGL must be used from the main OS thread.
 	runtime.LockOSThread()
+
+	if !strings.HasPrefix(DataDir, "/") {
+		_, filename, _, ok := runtime.Caller(0)
+		if !ok {
+			panic("Unable to get current file path")
+		}
+
+		// Extract the directory from the full file path
+		dir := filepath.Dir(filename)
+		DataDir = filepath.Join(dir, DataDir)
+	}
 
 	// Load Body (brain + eyes + wings)
 	body, err := NewBody(DataDir)
