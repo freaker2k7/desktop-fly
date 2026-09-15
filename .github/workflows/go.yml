@@ -50,7 +50,8 @@ jobs:
       with:
         go-version: '1.25.0'
 
-    - name: Fetch latest `data` artifact from `data.yml`
+    - name: Fetch latest `data` artifact from `data.yml` (Bash)
+      if: runner.os != 'Windows'
       run: |
         set -euo pipefail
         echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
@@ -65,6 +66,25 @@ jobs:
           exit 1
         fi
         curl -L -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -o data.zip "$DOWNLOAD_URL"
+      shell: bash
+
+    - name: Fetch latest `data` artifact from `data.yml` (PowerShell)
+      if: runner.os == 'Windows'
+      run: |
+        $ErrorActionPreference = "Stop"
+        gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
+        $run_id = gh api "repos/${{ github.repository }}/actions/workflows/data.yml/runs" --jq '.workflow_runs[] | select(.conclusion=="success") | .id' | Select-Object -First 1
+        if (-not $run_id) {
+          Write-Error "No successful data workflow run found"
+          exit 1
+        }
+        $download_url = gh api "repos/${{ github.repository }}/actions/runs/$run_id/artifacts" --jq '.artifacts[] | select(.name=="data") | .archive_download_url' | tr -d '"'
+        if (-not $download_url) {
+          Write-Error "No data artifact found in run $run_id"
+          exit 1
+        }
+        Invoke-WebRequest -Uri $download_url -Headers @{ Authorization = "token ${{ secrets.GITHUB_TOKEN }}" } -OutFile data.zip
+      shell: powershell
 
     - name: Unpack data (Linux/macOS)
       if: runner.os != 'Windows'
