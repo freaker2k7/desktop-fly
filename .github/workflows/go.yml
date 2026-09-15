@@ -65,3 +65,5 @@ jobs:
 
     - name: Create Release
       run: gh release create v${{ vars.VERSION }}.$(date +%Y%m%d%H%M%S) desktopfly.zip --title "v${{ vars.VERSION }}.$(date +%Y%m%d%H%M%S)" --notes "${{ vars.RELEASE_NOTES }} [$(date +%Y%m%d%H%M%S)]"
+      env:
+        GH_TOKEN: ${{ github.token }}
