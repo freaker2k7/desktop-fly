@@ -25,6 +25,8 @@ type Fly struct {
 	// cache last view capture to avoid frequent screencaptures
 	lastViewTime time.Time
 	lastViewVal  float64
+	// visual body radius used for drawing and capture scaling
+	BodyRadius float64
 }
 
 func NewFly(width, height float64) *Fly {
@@ -34,6 +36,7 @@ func NewFly(width, height float64) *Fly {
 	f.Vx = rand.Float64()*2 - 1
 	f.Vy = rand.Float64()*2 - 1
 	f.Angle = rand.Float64() * 2 * math.Pi
+	f.BodyRadius = 14.0
 	return f
 }
 
@@ -58,7 +61,8 @@ func (f *Fly) Sensors(mouseX, mouseY float64) map[string]float64 {
 	// it fails we gracefully return view=0.
 	cx := int(f.X)
 	cy := int(f.Y)
-	radius := 150
+	// make capture radius relative to fly visual size (10x body radius)
+	radius := int(f.BodyRadius * 10.0)
 	viewVal := 0.0
 	now := time.Now()
 	if !f.lastViewTime.IsZero() && now.Sub(f.lastViewTime) < time.Millisecond*500 {

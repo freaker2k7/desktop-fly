@@ -133,8 +133,9 @@ func (fw *FlyWindow) RenderFly() {
 
 	// draw ellipsoidal body and wings and eyes
 	angle := float32(fw.Fly.Angle)
-	bodyRx := float32(14)
-	bodyRy := float32(8)
+	// derive body radii from Fly.BodyRadius so drawing and capture match
+	bodyRx := float32(fw.Fly.BodyRadius)
+	bodyRy := bodyRx * (8.0 / 14.0)
 
 	// prepare shader and mvp
 	gl.UseProgram(fw.FlyProgram)
@@ -159,31 +160,46 @@ func (fw *FlyWindow) RenderFly() {
 
 	drawEllipse(cx, cy, bodyRx, bodyRy, angle, 0.08, 0.08, 0.12, 1.0)
 
-	// wings: left and right, slightly offset and flapping
+	// wings: left and right, offset perpendicular to body and flapping
 	phase := float32(time.Now().UnixNano()%1000000000) / 1e9 * 2.0 * 3.14159
 	flap := float32(math.Sin(float64(phase*6.0))) * 0.6
 	wingRx := float32(18)
 	wingRy := float32(9)
-	// wing centers in local body coordinates
-	leftOffsetX := -bodyRx * 0.4
-	rightOffsetX := bodyRx * 0.4
-	leftCx := cx + (leftOffsetX*float32(math.Cos(float64(angle))) - 0*float32(math.Sin(float64(angle))))
-	leftCy := cy + (leftOffsetX*float32(math.Sin(float64(angle))) + 0*float32(math.Cos(float64(angle))))
-	rightCx := cx + (rightOffsetX*float32(math.Cos(float64(angle))) - 0*float32(math.Sin(float64(angle))))
-	rightCy := cy + (rightOffsetX*float32(math.Sin(float64(angle))) + 0*float32(math.Cos(float64(angle))))
-	// draw wings with rotated angle + flap
-	drawEllipse(leftCx, leftCy, wingRx, wingRy, angle+flap, 0.9, 0.95, 1.0, 0.35)
-	drawEllipse(rightCx, rightCy, wingRx, wingRy, angle-flap, 0.9, 0.95, 1.0, 0.35)
+	// perpendicular unit vector to body angle
+	perpX := float32(-math.Sin(float64(angle)))
+	perpY := float32(math.Cos(float64(angle)))
+	// wing lateral offsets (distance from body center along perpendicular)
+	wingOffset := bodyRy * 1.2
+	leftCx := cx + perpX*wingOffset
+	leftCy := cy + perpY*wingOffset
+	rightCx := cx - perpX*wingOffset
+	rightCy := cy - perpY*wingOffset
+	// wing rotation should be roughly perpendicular to body (+/- 90deg), add flap
+	drawEllipse(leftCx, leftCy, wingRx, wingRy, angle+math.Pi/2+flap, 0.9, 0.95, 1.0, 0.35)
+	drawEllipse(rightCx, rightCy, wingRx, wingRy, angle-math.Pi/2-flap, 0.9, 0.95, 1.0, 0.35)
 
 	// eyes: two small red ellipses near front of body
+	// point eyes toward movement direction (use velocity when available)
 	eyeOffset := bodyRx * 0.6
 	eyeRx := float32(3.0)
 	eyeRy := float32(2.0)
-	frontX := cx + float32(math.Cos(float64(angle)))*eyeOffset
-	frontY := cy + float32(math.Sin(float64(angle)))*eyeOffset
-	// left/right eye positions perpendicular to angle
-	px := float32(-math.Sin(float64(angle)))
-	py := float32(math.Cos(float64(angle)))
+	moveAngle := float32(fw.Fly.Angle)
+	speed := float32(math.Hypot(fw.Fly.Vx, fw.Fly.Vy))
+	if speed > 0.01 {
+		moveAngle = float32(math.Atan2(fw.Fly.Vy, fw.Fly.Vx))
+	}
+	frontX := cx + float32(math.Cos(float64(moveAngle)))*eyeOffset
+	frontY := cy + float32(math.Sin(float64(moveAngle)))*eyeOffset
+	// left/right eye positions perpendicular to the movement angle
+	// but ensure the lateral vector points 'up' on screen so eyes
+	// appear on the top side of the body. If the computed perp has
+	// a negative Y (downwards) flip it.
+	px := float32(-math.Sin(float64(moveAngle)))
+	py := float32(math.Cos(float64(moveAngle)))
+	if py < 0 {
+		px = -px
+		py = -py
+	}
 	leftEyeX := frontX + px*4.0
 	leftEyeY := frontY + py*4.0
 	rightEyeX := frontX - px*4.0
