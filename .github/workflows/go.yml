@@ -63,7 +63,19 @@ jobs:
     - name: Archive the exacutable desktopfly with the data folder into a ZIP file
       run: zip -r desktopfly.zip desktopfly data
 
+    - name: Create tag (gh)
+      id: create_tag
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        set -euo pipefail
+        TAG=v${{ vars.VERSION }}.$(date +%Y%m%d%H%M%S)
+        SHA=$(git rev-parse HEAD)
+        gh api --method POST /repos/${{ github.repository }}/git/refs -f ref=refs/tags/$TAG -f sha=$SHA
+        echo "tag=$TAG" >> $GITHUB_OUTPUT
+
     - name: Release
       uses: softprops/action-gh-release@v3
       with:
         files: desktopfly.zip
+        tag_name: ${{ steps.create_tag.outputs.tag }}
