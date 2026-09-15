@@ -20,13 +20,28 @@ jobs:
       with:
         python-version: '3.12'
 
-    - name: Get Datasets
+    - name: Install system deps
+      run: sudo apt-get update && sudo apt-get install -y build-essential pkg-config \
+        libx11-dev libxrandr-dev libxcursor-dev libxinerama-dev libxi-dev libxfixes-dev libxxf86vm-dev \
+        libgl1-mesa-dev libglu1-mesa-dev
+
+    - name: Restore data cache
+      id: data-cache
+      uses: actions/cache@v6
+      with:
+        path: data
+        key: data-${{ runner.os }}-neurons-${{ hashFiles('scripts/get_neurons.py','scripts/requirements.txt') }}
+        restore-keys: |
+          data-${{ runner.os }}-neurons-
+
+    - name: Get Datasets (only on cache miss)
+      if: steps.data-cache.outputs.cache-hit != 'true'
       run: |
-          pip install -r scripts/requirements.txt
-          python scripts/get_neurons.py --root DNge104
-          python scripts/get_neurons.py --root KC
-          python scripts/get_neurons.py --root HBeyelet
-          python scripts/get_neurons.py --root TTMn
+        pip install -r scripts/requirements.txt
+        python scripts/get_neurons.py --root DNge104
+        python scripts/get_neurons.py --root KC
+        python scripts/get_neurons.py --root HBeyelet
+        python scripts/get_neurons.py --root TTMn
       env:
         NEUPRINT_TOKEN: ${{ secrets.NEUPRINT_TOKEN }}
 
@@ -34,10 +49,10 @@ jobs:
       run: go mod tidy
 
     - name: Build
-      run: go build -v ./...
+      run: go build
 
     - name: Test
-      run: go test -v ./...
+      run: go test
 
     - name: Archive the exacutable desktopfly with the data folder into a ZIP file
       run: zip -r desktopfly.zip desktopfly data
