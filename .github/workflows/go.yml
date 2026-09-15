@@ -63,7 +63,7 @@ jobs:
     - name: Archive the exacutable desktopfly with the data folder into a ZIP file
       run: zip -r desktopfly.zip desktopfly data
 
-    - name: Create Release
-      run: gh release create v${{ vars.VERSION }}.$(date +%Y%m%d%H%M%S) desktopfly.zip --title "v${{ vars.VERSION }}.$(date +%Y%m%d%H%M%S)" --notes "${{ vars.RELEASE_NOTES }} [$(date +%Y%m%d%H%M%S)]"
-      env:
-        GH_TOKEN: ${{ github.token }}
+    - name: Release
+      uses: softprops/action-gh-release@v3
+      with:
+        files: desktopfly.zip
